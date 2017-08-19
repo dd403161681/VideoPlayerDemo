@@ -98,15 +98,15 @@ LocalLogger.LOGGER.info("surfaceDestroyed");
 		};
 		private static final String SAMPLE = Environment.getExternalStorageDirectory() + "/video.mov";
 		private class PlayerThread extends Thread {
-		private Surface surface;
-		private MediaPlayer mMediaPlayer = null;
-	
-		public PlayerThread(Surface surface) {
-			this.surface = surface;
-		}
-	
-		@Override
-		public void run() {
+			private Surface surface;
+			private MediaPlayer mMediaPlayer = null;
+		
+			public PlayerThread(Surface surface) {
+				this.surface = surface;
+			}
+		
+			@Override
+			public void run() {
 			mMediaPlayer = new MediaPlayer();
 			try {
 				mMediaPlayer.setDataSource(SAMPLE);
@@ -135,13 +135,13 @@ LocalLogger.LOGGER.info("surfaceDestroyed");
 		}
 		
 		
-		private void playAgain() {
-			try {
-				LocalLogger.LOGGER.info("play again IN");			
-					handler.postDelayed(destroySurface, 500);
-			} catch (Exception e) {
-				LocalLogger.LOGGER.error("playAgain : ", e);
+			private void playAgain() {
+				try {
+					LocalLogger.LOGGER.info("play again IN");			
+						handler.postDelayed(destroySurface, 500);
+				} catch (Exception e) {
+					LocalLogger.LOGGER.error("playAgain : ", e);
+				}
 			}
 		}
-	}
 }

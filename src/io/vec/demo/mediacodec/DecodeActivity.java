@@ -10,8 +10,10 @@ import java.nio.ByteBuffer;
 import android.app.Activity;
 import android.media.MediaCodec;
 import android.media.MediaCodec.BufferInfo;
+import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -24,7 +26,8 @@ import io.vec.demo.logger.LocalLogger;
 public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 //	private static final String SAMPLE = Environment.getExternalStorageDirectory() + "/XM/xmlib" + "/167.mp4";
 	private static final String SAMPLE = Environment.getExternalStorageDirectory() + "/video.mov";
-	private PlayerThread mPlayer = null;
+	private AmlPlayerThread AmlmPlayer = null;
+	private RkPlayerThread RkmPlayer = null;
 	private SurfaceView sv = null;
 	private RelativeLayout relativeLayout = null;
 	private Handler handler = null;
@@ -32,6 +35,7 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
 		LocalLogger.LOGGER.info("***************MainActivity***************");
 		sv = new SurfaceView(this);
 		sv.getHolder().addCallback(this);
@@ -49,14 +53,28 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		try {
-			if (mPlayer == null) {
-				LocalLogger.LOGGER.info("surfaceCreated");
-				LocalLogger.LOGGER.info("mPlayer Thread created.");
-				mPlayer = new PlayerThread(holder.getSurface());
-				mPlayer.start();
-			} else{
-				LocalLogger.LOGGER.info("mPlayer Thread already created");
-				mPlayer.start();
+			//Rk
+			if(isRkplatform()){
+				if (RkmPlayer == null) {
+					LocalLogger.LOGGER.info("surfaceCreated");
+					LocalLogger.LOGGER.info("RkmPlayer Thread created.");
+					RkmPlayer = new RkPlayerThread(holder.getSurface());
+					RkmPlayer.start();
+				} else{
+					LocalLogger.LOGGER.info("RkmPlayer Thread already created");
+					RkmPlayer.start();
+				}
+			}else{
+				//Aml
+				if (AmlmPlayer == null) {
+					LocalLogger.LOGGER.info("surfaceCreated");
+					LocalLogger.LOGGER.info("AmlmPlayer Thread created.");
+					AmlmPlayer = new AmlPlayerThread(holder.getSurface());
+					AmlmPlayer.start();
+				} else{
+					LocalLogger.LOGGER.info("AmlmPlayer Thread already created");
+					AmlmPlayer.start();
+				}
 			}
 		} catch (Exception e) {
 			LocalLogger.LOGGER.error("Error in surfaceCreated : ", e);
@@ -73,12 +91,24 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 		LocalLogger.LOGGER.info("surfaceDestroyed");
 		
 		try {
-			if (mPlayer != null) {
-				mPlayer.interrupt();
-				mPlayer = null;
-				LocalLogger.LOGGER.info("mPlayer interrupt");
-			} else {
-				LocalLogger.LOGGER.info("mPlayer already interrupt");
+			if(isRkplatform()){
+				//rk
+				if (RkmPlayer != null) {
+					RkmPlayer.interrupt();
+					RkmPlayer = null;
+					LocalLogger.LOGGER.info("RkmPlayer interrupt");
+				} else {
+					LocalLogger.LOGGER.info("RkmPlayer already interrupt");
+				}
+			}else{				
+				//aml
+				if (AmlmPlayer != null) {
+					AmlmPlayer.interrupt();
+					AmlmPlayer = null;
+					LocalLogger.LOGGER.info("AmlmPlayer interrupt");
+				} else {
+					LocalLogger.LOGGER.info("AmlmPlayer already interrupt");
+				}
 			}
 		} catch (Exception e) {
 			LocalLogger.LOGGER.error("Error surfaceDestroyed : ", e);
@@ -103,12 +133,12 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 		}
 	};
 
-	private class PlayerThread extends Thread {
+	private class RkPlayerThread extends Thread {
 		private MediaExtractor extractor;
 		private MediaCodec decoder;
 		private Surface surface;
 
-		public PlayerThread(Surface surface) {
+		public RkPlayerThread(Surface surface) {
 			this.surface = surface;
 		}
 
@@ -253,5 +283,62 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback {
 				LocalLogger.LOGGER.error("playAgain : ", e);
 			}
 		}
+	}
+	
+	private class AmlPlayerThread extends Thread {
+		private Surface surface;
+		private MediaPlayer mMediaPlayer = null;
+	
+		public AmlPlayerThread(Surface surface) {
+			this.surface = surface;
+		}
+	
+		@Override
+		public void run() {
+		mMediaPlayer = new MediaPlayer();
+		try {
+			mMediaPlayer.setDataSource(SAMPLE);
+		} catch (IOException e1) {
+			LocalLogger.LOGGER.error("IOException : ", e1);
+		}
+
+		try {
+			mMediaPlayer.prepare();
+			mMediaPlayer.start();
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		mMediaPlayer.setOnCompletionListener(new OnCompletionListener() {
+			
+			@Override
+			public void onCompletion(MediaPlayer mp) {
+				LocalLogger.LOGGER.error("setOnCompletionListener  is complet start again");
+				mMediaPlayer.release();
+				mMediaPlayer = null;
+				playAgain();
+			}
+		});
+	}
+	
+	
+		private void playAgain() {
+			try {
+				LocalLogger.LOGGER.info("play again IN");			
+					handler.postDelayed(destroySurface, 500);
+			} catch (Exception e) {
+				LocalLogger.LOGGER.error("playAgain : ", e);
+			}
+		}
+	}
+
+	private boolean isRkplatform(){
+		String hardware = android.os.Build.HARDWARE;
+		LocalLogger.LOGGER.info("======hardware is "+hardware);
+		if(hardware.startsWith("rk") || hardware.startsWith("Rk") || hardware.startsWith("RK")){
+			return true;
+		}
+		return false;
 	}
 }

@@ -19,7 +19,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="io.vec.demo.mediacodec.VideoPlayer"
+            android:name="io.vec.demo.mediacodec.DecodeActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape" >
             <intent-filter>
